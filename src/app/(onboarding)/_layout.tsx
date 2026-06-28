@@ -6,8 +6,8 @@ export default function OnboardingLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="permissions" />
-      <Stack.Screen name="personal-info" />
-      <Stack.Screen name="profile-photo" />
+      {/* <Stack.Screen name="personal-info" />
+      <Stack.Screen name="profile-photo" /> */}
     </Stack>
   );
 }

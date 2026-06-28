@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const mobileVerifySchema = z.object({
+  mobile: z
+    .string()
+    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
+});
+
+export type MobileVerifyForm = z.infer<typeof mobileVerifySchema>;
+
 export const signInSchema = z.object({
   identifier: z.string().min(3, "Enter employee ID or mobile number"),
   password: z.string().min(6, "Password too short"),

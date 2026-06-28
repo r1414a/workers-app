@@ -702,6 +702,7 @@ import type {
   AttendanceRecord,
   AttendanceStatus,
 } from "@/types/attendance.types";
+import { formatShiftTime, isWithinShift } from "@/utils/shift";
 import { router } from "expo-router";
 import { History, User } from "lucide-react-native";
 import React, { useCallback } from "react";
@@ -1010,44 +1011,51 @@ function TodayAttendanceCard({
 // ─── Site Card ────────────────────────────────────────────────────────────────
 
 function SiteCard() {
-  const onSite = DEMO_WORKER.siteRadiusMeters
-    ? DEMO_WORKER.siteRadiusMeters < 200
-    : true;
+  const { assignedSite } = useSelector(selectUser);
+  const inShift = assignedSite
+    ? isWithinShift(assignedSite.startTime, assignedSite.endTime)
+    : false;
+
+  if (!assignedSite) {
+    return (
+      <View className="bg-white border border-gray-200 rounded-2xl p-4 mb-3">
+        <Text className="text-sm text-gray-500">No site assigned yet</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="bg-white border border-gray-200 rounded-2xl p-4 mb-3">
-      {/* <Text className="text-xs fold-bold text-maroon mb-2">
-        🏗️ ASSIGNED SITE
-      </Text> */}
       <Text className="text-base font-bold text-black mb-2">
-        {DEMO_WORKER.siteName}
+        {assignedSite.name}
       </Text>
       <View className="flex-row flex justify-between mb-2">
         <View>
           <Text className="text-xs text-gray-500">Shift</Text>
           <Text className="text-sm text-slate-900 font-medium">
-            {DEMO_WORKER.shiftStart} – {DEMO_WORKER.shiftEnd}
+            {formatShiftTime(assignedSite.startTime)} –{" "}
+            {formatShiftTime(assignedSite.endTime)}
           </Text>
         </View>
         <View>
-          <Text className="text-xs text-gray-500">Supervisor</Text>
+          <Text className="text-xs text-gray-500">Geofence</Text>
           <Text className="text-sm text-slate-900 font-medium">
-            {DEMO_WORKER.supervisorName}
+            {assignedSite.geofenceRadius}m radius
           </Text>
         </View>
       </View>
       <View className="flex-row items-center mt-1">
         <View
           className="w-1.5 h-1.5 rounded-full mr-1.5"
-          style={{ backgroundColor: onSite ? "#22C55E" : "#F59E0B" }}
+          style={{ backgroundColor: inShift ? "#22C55E" : "#F59E0B" }}
         />
         <Text
           className="text-xs font-medium"
-          style={{ color: onSite ? "#22C55E" : "#F59E0B" }}
+          style={{ color: inShift ? "#22C55E" : "#F59E0B" }}
         >
-          {onSite
-            ? "You are on site"
-            : formatDistance(DEMO_WORKER.siteRadiusMeters ?? 500)}
+          {inShift
+            ? "Shift active — location tracking on"
+            : "Outside shift hours — tracking paused"}
         </Text>
       </View>
     </View>
@@ -1235,6 +1243,8 @@ function SyncBadge({ pendingCount }: { pendingCount: number }) {
 
 export default function HomeDashboard() {
   const user = useSelector(selectUser);
+  console.log("logged in user", user);
+  
 
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -1279,9 +1289,9 @@ export default function HomeDashboard() {
         </View>
 
         <View className="flex-row items-center mt-2">
-          <View className="bg-white/15 rounded-full px-2.5 py-1 flex-row items-center mr-2.5">
+          {/* <View className="bg-white/15 rounded-full px-2.5 py-1 flex-row items-center mr-2.5">
             <Text className="text-xs text-white font-medium">{employeeId}</Text>
-          </View>
+          </View> */}
           <Text className="text-xs text-gold">
             {new Date().toLocaleDateString("en-IN", {
               weekday: "long",

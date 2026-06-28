@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rupesh0707a.constructionattendance"
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +36,18 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Iravya to track your location during your assigned shift for attendance verification.",
+          "locationAlwaysPermission": "Allow Iravya to track your location in the background during your assigned shift.",
+          "locationWhenInUsePermission": "Allow Iravya to access your location during your shift.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
+        }
+      ],
+      "expo-task-manager"
     ],
     "experiments": {
       "typedRoutes": true,
