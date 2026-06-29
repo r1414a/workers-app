@@ -6,9 +6,22 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Bell, MapPin } from "lucide-react-native";
 
 import { usePermissions } from "@/hooks/use-permissions";
+import { showErrorToast } from "@/utils/toast";
 
 export default function PermissionsScreen() {
   const { loading, perms, allGranted, requestAll } = usePermissions();
+
+  const handleContinue = () => {
+    if (!allGranted) {
+      showErrorToast(
+        "All permissions are required before you can continue",
+        "Permissions Required",
+      );
+      return;
+    }
+
+    router.replace("/home");
+  };
 
   return (
     <View className="flex-1 justify-center bg-maroon p-6">
@@ -33,12 +46,6 @@ export default function PermissionsScreen() {
           granted={perms.backgroundLocation}
         />
 
-        {/* <PermissionCard
-          icon={<Camera size={24} color={"gray"} />}
-          title="Camera"
-          granted={perms.camera}
-        /> */}
-
         <PermissionCard
           icon={<Bell size={24} />}
           title="Notifications"
@@ -49,10 +56,11 @@ export default function PermissionsScreen() {
       {!allGranted && (
         <Pressable
           onPress={requestAll}
+          disabled={loading}
           className="mt-10 h-14 items-center justify-center rounded-xl bg-white"
         >
           {loading ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="#701a40" />
           ) : (
             <Text className="font-semibold text-maroon">Grant Permissions</Text>
           )}
@@ -62,9 +70,9 @@ export default function PermissionsScreen() {
       {allGranted && (
         <Pressable
           className="mt-10 h-14 items-center justify-center rounded-xl bg-white"
-          onPress={() => router.push("/home")}
+          onPress={handleContinue}
         >
-          <Text className="font-semibold text-maroon">Continue</Text>
+          <Text className="font-semibold text-maroon">Continue to Home</Text>
         </Pressable>
       )}
     </View>

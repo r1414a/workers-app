@@ -1,5 +1,6 @@
 // src/services/device-binding.service.ts
 
+import type { VerifyWorkerRequest } from "@/types/api.types";
 import * as Application from "expo-application";
 import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
@@ -9,6 +10,19 @@ const DEVICE_KEY = "device_fingerprint";
 const INSTALL_KEY = "installation_id";
 
 export class DeviceBindingService {
+  static async getVerifyPayload(phone: string): Promise<VerifyWorkerRequest> {
+    const fp = await DeviceBindingService.getFingerprint();
+
+    return {
+      phone,
+      fingerprint: fp.fingerprintHash,
+      manufacturer: Device.manufacturer ?? "unknown",
+      brand: fp.brand ?? "unknown",
+      model: fp.model ?? "unknown",
+      device: Device.deviceName ?? fp.model ?? "unknown",
+    };
+  }
+
   static async getFingerprint() {
     let installationId = await SecureStore.getItemAsync(INSTALL_KEY);
 

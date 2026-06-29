@@ -21,10 +21,13 @@
 // src/app/_layout.tsx
 
 import { store } from "@/store";
+import { LocationTrackerProvider } from "@/components/LocationTrackerProvider";
+import "@/services/LocationTrackingService";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import { Provider } from "react-redux";
 import "../global.css";
 
@@ -34,7 +37,10 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <StatusBar style="light" backgroundColor="#701a40" />
-          <Stack screenOptions={{ headerShown: false }} />
+          <LocationTrackerProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </LocationTrackerProvider>
+          <Toast />
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </Provider>
