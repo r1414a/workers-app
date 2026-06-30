@@ -1,7 +1,4 @@
-import {
-  LOCATION_TASK_NAME,
-  TRACKING_SESSION_KEY,
-} from "@/constants/location";
+import { LOCATION_TASK_NAME, TRACKING_SESSION_KEY } from "@/constants/location";
 import { DeviceIntegrityService } from "@/services/DeviceIntegrityService";
 import { LocationApiService } from "@/services/LocationApiService";
 import type { TrackingSession } from "@/types/location.types";
@@ -71,9 +68,8 @@ export class LocationTrackingService {
   static async start(session: TrackingSession) {
     await this.saveSession(session);
 
-    const hasStarted = await Location.hasStartedLocationUpdatesAsync(
-      LOCATION_TASK_NAME,
-    );
+    const hasStarted =
+      await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
 
     if (hasStarted) return;
 
@@ -92,9 +88,8 @@ export class LocationTrackingService {
   }
 
   static async stop() {
-    const hasStarted = await Location.hasStartedLocationUpdatesAsync(
-      LOCATION_TASK_NAME,
-    );
+    const hasStarted =
+      await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
 
     if (hasStarted) {
       await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);

@@ -1257,6 +1257,8 @@ export default function HomeDashboard() {
   } = useGetWorkerMeQuery(undefined, { skip: !isLoggedIn });
 
   const worker = meResponse?.data.worker;
+  console.log("me route", worker);
+  
 
   useEffect(() => {
     if (!worker) return;

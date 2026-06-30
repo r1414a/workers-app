@@ -91,3 +91,20 @@ export interface WorkerMeProfile extends VerifiedWorker {
   current_week_attendance: WeekAttendanceRecord[];
   current_month_attendance: MonthAttendanceStats;
 }
+
+export interface AttendanceHistoryRecord extends WeekAttendanceRecord {
+  site?: Pick<WorkerSite, "id" | "name"> | null;
+}
+
+export interface AttendanceHistoryData {
+  attendance: AttendanceHistoryRecord[];
+  present: number;
+  absent: number;
+  late: number;
+}
+
+export interface AttendanceHistoryParams {
+  year: number;
+  /** 1–12 (January = 1) */
+  month: number;
+}

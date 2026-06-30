@@ -1,3 +1,4 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -12,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch } from "react-redux";
 
 import {
@@ -33,7 +33,8 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 
 export default function SignInScreen() {
   const dispatch = useDispatch();
-  const [verifyWorker, { isLoading: isRegistering }] = useVerifyWorkerMutation();
+  const [verifyWorker, { isLoading: isRegistering }] =
+    useVerifyWorkerMutation();
   const [loginWorker, { isLoading: isLoggingIn }] = useLoginWorkerMutation();
   const isLoading = isRegistering || isLoggingIn;
 
@@ -50,7 +51,7 @@ export default function SignInScreen() {
     try {
       const payload = await DeviceBindingService.getVerifyPayload(mobile);
       const binding = await DeviceBindingService.validate();
-      console.log("binding",binding);
+      console.log("binding", binding);
 
       if (!binding.isRegistered) {
         const registerResponse = await verifyWorker(payload).unwrap();
@@ -81,6 +82,8 @@ export default function SignInScreen() {
         permissionsGranted ? "/home" : "/(onboarding)/permissions",
       );
     } catch (error) {
+      console.log(error);
+
       showErrorToast(
         getApiErrorMessage(error, "Sign in failed. Please try again."),
         "Sign In Failed",

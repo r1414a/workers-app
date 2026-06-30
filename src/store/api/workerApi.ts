@@ -1,5 +1,7 @@
 import type {
   ApiResponse,
+  AttendanceHistoryData,
+  AttendanceHistoryParams,
   VerifyWorkerData,
   VerifyWorkerRequest,
   WorkerLoginData,
@@ -41,6 +43,16 @@ export const workerApi = baseApi.injectEndpoints({
         return("/worker/me")
       },
     }),
+    getAttendanceHistory: builder.query<
+      ApiResponse<AttendanceHistoryData>,
+      AttendanceHistoryParams
+    >({
+      query: ({ year, month }) => {
+        console.log(year, month);
+        
+        return(`/worker/atttendance?year=${year}&month=${month}`)
+      }
+    }),
   }),
 });
 
@@ -49,4 +61,5 @@ export const {
   useLoginWorkerMutation,
   useGetWorkerMeQuery,
   useLazyGetWorkerMeQuery,
+  useGetAttendanceHistoryQuery,
 } = workerApi;
