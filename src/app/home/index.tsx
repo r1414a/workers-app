@@ -691,31 +691,38 @@
  * Uses NativeWind (Tailwind CSS) for styling
  */
 
+import type {
+  MonthAttendanceStats,
+  WorkerSite,
+  WeekAttendanceRecord,
+} from "@/types/api.types";
+import { useGetWorkerMeQuery } from "@/store/api/workerApi";
 import {
-  DEMO_HISTORY,
-  DEMO_MONTHLY_STATS,
-  DEMO_WORKER,
-  THIS_WEEK_DAYS,
-} from "@/constants/demoData";
-import { selectUser } from "@/store/slice/authSlice";
+  selectUser,
+  setAssignedSite,
+  setWorkerProfile,
+} from "@/store/slice/authSlice";
 import type {
   AttendanceRecord,
   AttendanceStatus,
 } from "@/types/attendance.types";
+import { buildWeekCalendarData } from "@/utils/home-attendance";
 import { formatShiftTime, isWithinShift } from "@/utils/shift";
 import { router } from "expo-router";
 import { History, User } from "lucide-react-native";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
+  ActivityIndicator,
   Image,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { mapVerifiedWorkerToProfile } from "@/utils/auth-session";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1010,13 +1017,10 @@ function TodayAttendanceCard({
 
 // ─── Site Card ────────────────────────────────────────────────────────────────
 
-function SiteCard() {
-  const { assignedSite } = useSelector(selectUser);
-  const inShift = assignedSite
-    ? isWithinShift(assignedSite.startTime, assignedSite.endTime)
-    : false;
+function SiteCard({ site }: { site: WorkerSite | null | undefined }) {
+  const inShift = site ? isWithinShift(site.startTime, site.endTime) : false;
 
-  if (!assignedSite) {
+  if (!site) {
     return (
       <View className="bg-white border border-gray-200 rounded-2xl p-4 mb-3">
         <Text className="text-sm text-gray-500">No site assigned yet</Text>
@@ -1027,20 +1031,20 @@ function SiteCard() {
   return (
     <View className="bg-white border border-gray-200 rounded-2xl p-4 mb-3">
       <Text className="text-base font-bold text-black mb-2">
-        {assignedSite.name}
+        {site.name}
       </Text>
       <View className="flex-row flex justify-between mb-2">
         <View>
           <Text className="text-xs text-gray-500">Shift</Text>
           <Text className="text-sm text-slate-900 font-medium">
-            {formatShiftTime(assignedSite.startTime)} –{" "}
-            {formatShiftTime(assignedSite.endTime)}
+            {formatShiftTime(site.startTime)} –{" "}
+            {formatShiftTime(site.endTime)}
           </Text>
         </View>
         <View>
           <Text className="text-xs text-gray-500">Geofence</Text>
           <Text className="text-sm text-slate-900 font-medium">
-            {assignedSite.geofenceRadius}m radius
+            {site.geofenceRadius}m radius
           </Text>
         </View>
       </View>
@@ -1064,20 +1068,12 @@ function SiteCard() {
 
 // ─── Week Calendar Strip ───────────────────────────────────────────────────────
 
-function WeekCalendar() {
-  const today = new Date().getDay();
-  // console.log(today, typeof today);
-
-  const todayIdx = 4;
-  // const todayIdx = today === 0 ? 6 : today - 1;
-
-  const weekData = THIS_WEEK_DAYS.map((day: string, i: number) => {
-    if (i > todayIdx) return { day, status: "future" as const };
-    if (i === todayIdx) return { day, status: "today" as const };
-    const daysAgo = todayIdx - i;
-    const record = DEMO_HISTORY[daysAgo - 1];
-    return { day, status: (record?.status ?? "absent") as string };
-  });
+function WeekCalendar({
+  weekAttendance = [],
+}: {
+  weekAttendance?: WeekAttendanceRecord[];
+}) {
+  const weekData = buildWeekCalendarData(weekAttendance);
 
   const dotColor: Record<string, string> = {
     checked_out: "#16A34A",
@@ -1150,9 +1146,20 @@ function WeekCalendar() {
 
 // ─── Monthly Stats ─────────────────────────────────────────────────────────────
 
-function MonthlyStats() {
-  const stats = DEMO_MONTHLY_STATS;
-  const pct = stats.attendancePercent;
+function MonthlyStats({
+  stats,
+}: {
+  stats: MonthAttendanceStats | undefined;
+}) {
+  if (!stats) {
+    return (
+      <View className="bg-white rounded-2xl p-4 border border-gray-200 mb-3">
+        <Text className="text-sm text-gray-500">No monthly data yet</Text>
+      </View>
+    );
+  }
+
+  const pct = stats.attendancePercentage;
   // const pct = 90;
   const barColor = pct >= 90 ? "#22C55E" : pct >= 75 ? "#F59E0B" : "#EF4444";
   const pctColor =
@@ -1186,27 +1193,23 @@ function MonthlyStats() {
         {[
           {
             label: "Present",
-            value: stats.presentDays,
+            value: stats.present,
             colorClass: "text-green-600",
-            // bgClass: "bg-green-50",
           },
           {
             label: "Absent",
-            value: stats.absentDays,
+            value: stats.absent,
             colorClass: "text-red-600",
-            // bgClass: "bg-red-50",
           },
           {
             label: "Late",
-            value: stats.lateDays,
+            value: stats.late,
             colorClass: "text-amber-600",
-            // bgClass: "bg-amber-50",
           },
           {
             label: "Days",
-            value: stats.totalWorkingDays,
+            value: stats.totalDays,
             colorClass: "text-maroon",
-            // bgClass: "bg-maroon/10",
           },
         ].map(({ label, value, colorClass }) => (
           <View key={label} className={`flex-1 rounded-xl p-2.5 items-center`}>
@@ -1242,24 +1245,59 @@ function SyncBadge({ pendingCount }: { pendingCount: number }) {
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeDashboard() {
-  const user = useSelector(selectUser);
-  console.log("logged in user", user);
-  
+  const dispatch = useDispatch();
+  const { isLoggedIn } = useSelector(selectUser);
+
+  const {
+    data: meResponse,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useGetWorkerMeQuery(undefined, { skip: !isLoggedIn });
+
+  const worker = meResponse?.data.worker;
+
+  useEffect(() => {
+    if (!worker) return;
+    dispatch(setAssignedSite(worker.site));
+    dispatch(setWorkerProfile(mapVerifiedWorkerToProfile(worker)));
+  }, [dispatch, worker]);
 
   const insets = useSafeAreaInsets();
-  const [refreshing, setRefreshing] = React.useState(false);
   const [pendingSync] = React.useState(0);
 
-  const workerName: string =
-    user.worker?.fullName ?? DEMO_WORKER.fullName ?? "Worker";
-  const employeeId: string =
-    user.worker?.employeeId ?? DEMO_WORKER.id ?? "EMP-0000";
+  const workerName = worker
+    ? [worker.firstName, worker.lastName].filter(Boolean).join(" ")
+    : "Worker";
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setRefreshing(false);
-  }, []);
+    await refetch();
+  }, [refetch]);
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#F8FAFC]">
+        <ActivityIndicator size="large" color="#701a40" />
+      </View>
+    );
+  }
+
+  if (isError || !worker) {
+    return (
+      <View className="flex-1 items-center justify-center bg-[#F8FAFC] px-6">
+        <Text className="text-gray-600 text-center mb-4">
+          Could not load your dashboard. Pull to refresh or try again.
+        </Text>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          className="bg-maroon rounded-xl px-6 py-3"
+        >
+          <Text className="text-white font-semibold">Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-[#F8FAFC]">
@@ -1322,7 +1360,7 @@ export default function HomeDashboard() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={isFetching}
             onRefresh={onRefresh}
             tintColor="#1D4ED8"
           />
@@ -1334,21 +1372,21 @@ export default function HomeDashboard() {
         <Text className="text-xs font-semibold text-maroon uppercase tracking-wide mb-2">
           Assigned site
         </Text>
-        <SiteCard />
+        <SiteCard site={worker.site} />
 
         {/* Week strip */}
         <Text className="text-xs font-semibold text-maroon uppercase tracking-wide mb-2">
           This Week
         </Text>
         <View className="bg-white rounded-2xl p-4 border border-gray-200 mb-3">
-          <WeekCalendar />
+          <WeekCalendar weekAttendance={worker.current_week_attendance} />
         </View>
 
         {/* Monthly summary */}
         <Text className="text-xs font-semibold text-maroon uppercase tracking-wide mb-2">
           Monthly summary
         </Text>
-        <MonthlyStats />
+        <MonthlyStats stats={worker.current_month_attendance} />
 
         {/* Secondary quick links */}
         <View className="flex-row gap-2.5 mb-4">

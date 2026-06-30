@@ -10,7 +10,6 @@ export interface LocationUpdatePayload {
   timestamp: number;
   isMocked: boolean;
   isVpn: boolean;
-  isInside: boolean;
   gps: boolean;
 }
 

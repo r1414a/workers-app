@@ -56,5 +56,38 @@ export interface WorkerLoginData {
 }
 
 export interface WorkerMeData {
-  worker: VerifiedWorker;
+  worker: WorkerMeProfile;
+}
+
+export type ApiAttendanceStatus =
+  | "PRESENT"
+  | "ABSENT"
+  | "LATE"
+  | "HALF_DAY"
+  | "LEAVE";
+
+export interface WeekAttendanceRecord {
+  id: string;
+  userId: string;
+  siteId: string;
+  date: string;
+  arrivalTime: string | null;
+  exitTime: string | null;
+  totalHours: string | number | null;
+  status: ApiAttendanceStatus;
+  entryCount: number;
+  exitCount: number;
+}
+
+export interface MonthAttendanceStats {
+  attendancePercentage: number;
+  present: number;
+  absent: number;
+  late: number;
+  totalDays: number;
+}
+
+export interface WorkerMeProfile extends VerifiedWorker {
+  current_week_attendance: WeekAttendanceRecord[];
+  current_month_attendance: MonthAttendanceStats;
 }

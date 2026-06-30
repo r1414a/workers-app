@@ -1,5 +1,5 @@
 import { SOCKET_BASE_URL } from "@/constants/location";
-import type { LocationUpdatePayload, WorkerAlert } from "@/types/location.types";
+import type { WorkerAlert } from "@/types/location.types";
 import { io, Socket } from "socket.io-client";
 
 type AlertHandler = (alert: WorkerAlert) => void;
@@ -61,15 +61,7 @@ class SocketService {
   joinSite(workerId: string, siteId: string) {
     this.joinTarget = { workerId, siteId };
     this.connect();
-    // If already connected, join immediately; otherwise the `connect` handler
-    // will emit it once the handshake completes. Idempotent either way.
     this.emitJoin();
-  }
-
-  emitLocationUpdate(payload: LocationUpdatePayload) {
-    const socket = this.connect();
-    if (!socket.connected) return;
-    socket.emit("location:update", payload);
   }
 
   onAlert(handler: AlertHandler) {

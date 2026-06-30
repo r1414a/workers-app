@@ -3,7 +3,7 @@ import {
   TRACKING_SESSION_KEY,
 } from "@/constants/location";
 import { DeviceIntegrityService } from "@/services/DeviceIntegrityService";
-import { socketService } from "@/services/SocketService";
+import { LocationApiService } from "@/services/LocationApiService";
 import type { TrackingSession } from "@/types/location.types";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
@@ -19,11 +19,6 @@ async function readSession(): Promise<TrackingSession | null> {
 
 async function handleLocationUpdate(locations: Location.LocationObject[]) {
   const session = await readSession();
-  console.log(
-    "Background task fired",
-    new Date().toISOString(),
-    locations.length
-  );
   if (!session) return;
 
   if (!isWithinShift(session.shiftStart, session.shiftEnd)) {
@@ -35,11 +30,7 @@ async function handleLocationUpdate(locations: Location.LocationObject[]) {
 
   const integrity = await DeviceIntegrityService.getIntegrityFlags(location);
 
-  // joinSite is idempotent: it only emits once per connection (and re-emits
-  // automatically after a reconnect), so this won't spam the server.
-  socketService.joinSite(session.workerId, session.siteId);
-
-  socketService.emitLocationUpdate({
+  await LocationApiService.postLocationUpdate({
     workerId: session.workerId,
     siteId: session.siteId,
     latitude: location.coords.latitude,
@@ -48,7 +39,6 @@ async function handleLocationUpdate(locations: Location.LocationObject[]) {
     isMocked: integrity.isMocked,
     isVpn: integrity.isVpn,
     gps: integrity.gps,
-    isInside: false,
   });
 }
 
