@@ -5,9 +5,11 @@ import { LocationTrackingService } from "@/services/LocationTrackingService";
 import { socketService } from "@/services/SocketService";
 import { selectUser } from "@/store/slice/authSlice";
 import type { TrackingSession } from "@/types/location.types";
-
+import { hasAllPermissions } from "@/utils/permissions";
+import * as Location from "expo-location";
 import { isWithinShift } from "@/utils/shift";
 import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast";
+import { Alert } from "react-native";
 
 const SHIFT_CHECK_INTERVAL_MS = 60_000;
 
@@ -29,7 +31,6 @@ export function useLocationTracker() {
   const shiftStart = assignedSite?.startTime;
   const shiftEnd = assignedSite?.endTime;
 
-  // ── Socket: connect + join site once, listen for alerts ───────────────────
   useEffect(() => {
     if (!isLoggedIn || !workerId || !siteId) return;
 
@@ -48,7 +49,6 @@ export function useLocationTracker() {
       }
     });
 
-    // joinSite handles connect + a single join (and auto re-join on reconnect).
     socketService.joinSite(workerId, siteId);
 
     return () => {
@@ -56,9 +56,16 @@ export function useLocationTracker() {
     };
   }, [isLoggedIn, workerId, siteId]);
 
-  // ── Shift window: start/stop background location updates ──────────────────
   useEffect(() => {
-    if (!isLoggedIn || !workerId || !siteId || !shiftStart || !shiftEnd) return;
+    if (!isLoggedIn) {
+      if (trackingRef.current) {
+        void LocationTrackingService.stop();
+        trackingRef.current = false;
+      }
+      return;
+    }
+
+    if (!workerId || !siteId || !shiftStart || !shiftEnd) return;
 
     const session: TrackingSession = {
       workerId,
@@ -69,11 +76,21 @@ export function useLocationTracker() {
 
     const syncTracking = async () => {
       const inShift = isWithinShift(shiftStart, shiftEnd);
+      const permissionsGranted = await hasAllPermissions();
 
-      if (inShift && !trackingRef.current) {
+      if (inShift && permissionsGranted && !trackingRef.current) {
+        // console.log("KJHKJHKJJK",inShift, permissionsGranted)
+        const servicesEnabled = await Location.hasServicesEnabledAsync();
+        if (!servicesEnabled) {
+  Alert.alert(
+    "Location is Off",
+    "Please turn on Location Services to start attendance tracking."
+  );
+  return;
+}
         await LocationTrackingService.start(session);
         trackingRef.current = true;
-      } else if (!inShift && trackingRef.current) {
+      } else if ((!inShift || !permissionsGranted) && trackingRef.current) {
         await LocationTrackingService.stop();
         trackingRef.current = false;
       }
@@ -84,6 +101,10 @@ export function useLocationTracker() {
 
     return () => {
       clearInterval(shiftInterval);
+      if (trackingRef.current) {
+        void LocationTrackingService.stop();
+        trackingRef.current = false;
+      }
     };
   }, [isLoggedIn, workerId, siteId, shiftStart, shiftEnd]);
 }

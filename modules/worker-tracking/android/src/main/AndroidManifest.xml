@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <service
+      android:name=".WorkerTrackingForegroundService"
+      android:enabled="true"
+      android:exported="false"
+      android:foregroundServiceType="location" />
+
+    <receiver
+      android:name=".BootReceiver"
+      android:enabled="true"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+      </intent-filter>
+    </receiver>
+  </application>
+</manifest>

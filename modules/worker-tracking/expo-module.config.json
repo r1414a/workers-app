@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["com.rupesh14a.workertracking.WorkerTrackingModule"]
+  }
+}

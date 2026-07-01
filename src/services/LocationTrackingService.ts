@@ -1,12 +1,15 @@
 import { LOCATION_TASK_NAME, TRACKING_SESSION_KEY } from "@/constants/location";
 import { DeviceIntegrityService } from "@/services/DeviceIntegrityService";
 import { LocationApiService } from "@/services/LocationApiService";
+import { NativeTrackingService } from "@/services/NativeTrackingService";
+import { TokenService } from "@/services/TokenService";
 import type { TrackingSession } from "@/types/location.types";
+import { getDevicePushToken } from "@/utils/push-token";
+import { isWithinShift } from "@/utils/shift";
 import * as Location from "expo-location";
 import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
-
-import { isWithinShift } from "@/utils/shift";
+import { Platform } from "react-native";
 
 async function readSession(): Promise<TrackingSession | null> {
   const raw = await SecureStore.getItemAsync(TRACKING_SESSION_KEY);
@@ -26,6 +29,7 @@ async function handleLocationUpdate(locations: Location.LocationObject[]) {
   if (!location) return;
 
   const integrity = await DeviceIntegrityService.getIntegrityFlags(location);
+  const deviceToken = await getDevicePushToken();
 
   await LocationApiService.postLocationUpdate({
     workerId: session.workerId,
@@ -36,18 +40,21 @@ async function handleLocationUpdate(locations: Location.LocationObject[]) {
     isMocked: integrity.isMocked,
     isVpn: integrity.isVpn,
     gps: integrity.gps,
+    deviceToken,
   });
 }
 
-TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
-  if (error) {
-    console.error("Background location task error:", error);
-    return;
-  }
+if (Platform.OS === "ios") {
+  TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
+    if (error) {
+      console.error("Background location task error:", error);
+      return;
+    }
 
-  const { locations } = data as { locations: Location.LocationObject[] };
-  await handleLocationUpdate(locations);
-});
+    const { locations } = data as { locations: Location.LocationObject[] };
+    await handleLocationUpdate(locations);
+  });
+}
 
 export class LocationTrackingService {
   static async saveSession(session: TrackingSession) {
@@ -62,11 +69,28 @@ export class LocationTrackingService {
   }
 
   static async isTrackingActive() {
+    if (NativeTrackingService.isSupported()) {
+      return NativeTrackingService.isTracking();
+    }
+
     return TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
   }
 
   static async start(session: TrackingSession) {
     await this.saveSession(session);
+
+    if (NativeTrackingService.isSupported()) {
+      const token = await TokenService.load();
+      if (!token) {
+        throw new Error("No auth token available to start native tracking");
+      }
+
+      const deviceToken = await getDevicePushToken();
+
+      console.log("LocationTrackingService", session,token, deviceToken);
+      await NativeTrackingService.start(session, token, deviceToken);
+      return;
+    }
 
     const hasStarted =
       await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
@@ -88,6 +112,12 @@ export class LocationTrackingService {
   }
 
   static async stop() {
+    if (NativeTrackingService.isSupported()) {
+      await NativeTrackingService.stop();
+      await this.clearSession();
+      return;
+    }
+
     const hasStarted =
       await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
 

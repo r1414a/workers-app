@@ -11,6 +11,7 @@ export interface LocationUpdatePayload {
   isMocked: boolean;
   isVpn: boolean;
   gps: boolean;
+  deviceToken: string;
 }
 
 export interface WorkerAlert {

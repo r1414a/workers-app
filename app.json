@@ -23,7 +23,11 @@
         "CAMERA",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED"
       ]
     },
     "web": {
@@ -42,7 +46,17 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Iravya to track your location during your shift.",
+          "locationAlwaysPermission": "Allow Iravya to track your location in the background during your shift.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "./plugins/withWorkerTracking"
     ],
     "experiments": {
       "typedRoutes": true,

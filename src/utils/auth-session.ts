@@ -1,4 +1,5 @@
 import { AuthSessionService } from "@/services/AuthSessionService";
+import { LocationTrackingService } from "@/services/LocationTrackingService";
 import { TokenService } from "@/services/TokenService";
 import type { VerifiedWorker } from "@/types/api.types";
 import { WorkerProfile } from "@/types/worker.types";
@@ -24,5 +25,6 @@ export async function persistAuthSession(token: string, worker: VerifiedWorker) 
 }
 
 export async function clearAuthSession() {
+  await LocationTrackingService.stop();
   await Promise.all([TokenService.clear(), AuthSessionService.clear()]);
 }
